@@ -1,0 +1,128 @@
+#+title: CAW: A Modular Synthesizer Library for Rust
+#+author: Stephen Sherratt
+#+email: stephen@sherra.tt
+
+* CAW: A Modular Synthesizer Library for Rust
+
+[[file:./logo.png]]
+# (image credit: my sister!)
+
+* Analog Modular Synthesizers
+
+[[file:./moog.jpg]]
+# (image credit: thesilo.ca)
+
+- sound is produced by /modules/
+- produce a sound by /patching/ modules together
+- audio and control signals are just voltages
+
+* A /Software-Defined/ Modular Synthesizer
+
+#+begin_src rust
+
+// A 200Hz saw-tooth wave passed through a
+// low pass filter with a 4kHz cutoff:
+oscillator_hz(Waveform::Saw, 200.0)
+    .build()
+    .filter(low_pass_moog_ladder(4000.0).build())
+
+#+end_src
+
+* The `Signal<T>` type
+
+Primary data structure of the CAW library
+
+** A value that changes at the audio sample rate
+
+#+begin_src rust
+
+/// Create an oscillator with a given frequency
+fn oscillator_hz(
+    waveform: Waveform, // Sine, Saw, Pulse, etc
+    freq_hz: f64,
+) -> Signal<f64>;
+
+let c4_major_chord: Signal<f64> =
+    [note::C4, note::E4, note::G4]
+	.into_iter()
+	.map(|note| {
+             oscillator_hz(Waveform::Saw, note.freq_hz()).build()
+        })
+	.sum(); // <-- signals can be added!
+#+end_src
+
+** Roughly analagous to the voltage in a cable
+
+#+begin_src rust
+
+// I lied before!
+fn oscillator_hz(
+    waveform: impl Into<Signal<Waveform>>,
+    freq_hz: impl Into<Signal<f64>>,
+) -> Signal<f64>;
+
+let vibrato: Signal<f64> =
+    oscillator_hz(Waveform::Sine, 4.0).build() * 20.0;
+
+let c4_major_chord: Signal<f64> =
+    [note::C4, note::E4, note::G4]
+        .into_iter()
+        .map(|note| {
+            oscillator_hz(
+                Waveform::Saw,
+                note.freq_hz() + &vibrato, // <-- coersion, composition
+            ).build()
+        })
+        .sum();
+#+end_src
+
+** Filters can be composed with `.filter(...)`
+
+#+begin_src rust
+
+let vibrato: Signal<f64> =
+    oscillator_hz(Waveform::Sine, 4.0).build();
+
+let signal: Signal<f64> =
+    oscillator_hz(Waveform::Saw, note::C3.freq_hz())
+        .build()
+        .filter(
+            low_pass_chebyshev(vibrato.signed_to_01() * 4000)
+                .resonance(10.0)
+                .build(),
+        )
+        .filter(compress().build());
+
+#+end_src
+
+* The rest of this talk is a demo!
+
+
+
+** Make the THX sound
+
+** Play with periodic gate, filter, reverb
+
+** Show off some example programs
+
+*** midi_file
+
+- Play ~/Downloads/Ludwig\ Van\ Beethoven\ -\ Moonlight\ Sonata\ 3rd\ Movement.mid.mid
+
+*** keyboard_and_mouse_arp
+
+- Take the notes of all the keys currently pressed, plus an octave above, and arp between each note in an increasing pattern
+
+*** keyboard_and_mouse_arp_index_loops
+
+- Demonstrates synthesizing drum sounds.
+- Arpegiates between whatever keys are held down, gradually changing pattern.
+
+*** vocoder
+
+- Don't forget to add a delay to avoid feedback!
+- Can't run it from emacs as emacs doesn't have mic permission.
+
+* Questions
+
+(btw "CAW" stands for "Combinatorial Audio Workstation")
