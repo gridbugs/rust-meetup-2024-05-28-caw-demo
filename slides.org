@@ -18,13 +18,15 @@
 
 * A /Software-Defined/ Modular Synthesizer
 
+Replace modules and wires with code!
+
 #+begin_src rust
 
-// A 200Hz saw-tooth wave passed through a
-// low pass filter with a 4kHz cutoff:
-oscillator_hz(Waveform::Saw, 200.0)
-    .build()
-    .filter(low_pass_moog_ladder(4000.0).build())
+// A 200Hz saw-tooth wave
+let osc = oscillator_hz(Waveform::Saw, 200.0).build();
+
+// Run the wave through a low pass filter with a 4kHz cutoff
+osc.filter(low_pass_moog_ladder(4000.0).build())
 
 #+end_src
 
@@ -87,7 +89,7 @@ let signal: Signal<f64> =
     oscillator_hz(Waveform::Saw, note::C3.freq_hz())
         .build()
         .filter(
-            low_pass_chebyshev(vibrato.signed_to_01() * 4000)
+            low_pass_chebyshev(1000.0 + vibrato.signed_to_01() * 4000)
                 .resonance(10.0)
                 .build(),
         )
@@ -99,7 +101,138 @@ let signal: Signal<f64> =
 
 ** Make the THX sound
 
-** Play with periodic gate, filter, reverb
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#+begin_src rust
+
+fn interp_rand<R: Rng>(
+    rng: &mut R,
+    freq_hz: f64,
+    interp: Sf64,
+) -> Sf64 {
+    let base_freq_hz = (freq_hz / 2.0)
+        + (rng.gen::<f64>() * freq_hz);
+    oscillator_hz(
+        Waveform::Saw,
+        (freq_hz * &interp)
+            + (base_freq_hz
+                * (1.0 - interp)),
+    )
+    .build()
+}
+
+fn voice(input: Input) -> Sf64 {
+    let mut rng =
+        StdRng::from_entropy();
+    [50, 100, 200, 400]
+        .into_iter()
+        .map(|freq_hz| {
+            (0..10)
+                .into_iter()
+                .map(|_| {
+                    interp_rand(
+                        &mut rng,
+                        freq_hz as f64,
+                        input
+                            .mouse
+                            .x_01(),
+                    )
+                })
+                .sum()
+        })
+        .sum()
+}
+
+#+end_src
+
+** Play with gates, filter, reverb
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#+begin_src rust
+fn voice_single(
+    input: Input,
+    key: Key,
+    freq_hz: f64,
+) -> Sf64 {
+    let env = adsr_linear_01(input.keyboard.get(key))
+        .release_s(0.1)
+        .build();
+    let osc =
+        |freq| oscillator_hz(Waveform::Saw, freq).build();
+    let osc = osc(freq_hz) + osc(freq_hz * 2.0);
+    osc.filter(
+        low_pass_moog_ladder(
+            20000.0 * env * input.mouse.x_01(),
+        )
+        .resonance(input.mouse.y_01() * 2.0)
+        .build(),
+    )
+    .filter(reverb().room_size(0.9).build())
+}
+
+fn voice(input: Input) -> Sf64 {
+    sum([
+        voice_single(
+            input.clone(),
+            Key::A,
+            note::C3.freq_hz(),
+        ),
+        voice_single(
+            input.clone(),
+            Key::S,
+            note::D3.freq_hz(),
+        ),
+        voice_single(
+            input.clone(),
+            Key::D,
+            note::E3.freq_hz(),
+        ),
+    ])
+}
+#+end_src
 
 ** Show off some example programs
 
