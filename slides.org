@@ -102,8 +102,7 @@ let signal: Signal<f64> =
 ** Make the THX sound
 
 
-
-
+[[./thx.png]]
 
 
 
@@ -125,43 +124,40 @@ let signal: Signal<f64> =
 
 
 #+begin_src rust
+use rand::{rngs::StdRng, Rng, SeedableRng};
 
 fn interp_rand<R: Rng>(
     rng: &mut R,
     freq_hz: f64,
     interp: Sf64,
 ) -> Sf64 {
-    let base_freq_hz = (freq_hz / 2.0)
-        + (rng.gen::<f64>() * freq_hz);
+    let base_freq_hz = 200.0 + (rng.gen::<f64>() * 200.0);
     oscillator_hz(
         Waveform::Saw,
         (freq_hz * &interp)
-            + (base_freq_hz
-                * (1.0 - interp)),
+            + (base_freq_hz * (1.0 - interp)),
     )
     .build()
 }
 
 fn voice(input: Input) -> Sf64 {
-    let mut rng =
-        StdRng::from_entropy();
-    [50, 100, 200, 400]
+    let mut rng = StdRng::from_entropy();
+    [50, 100, 150, 200, 300, 400]
         .into_iter()
         .map(|freq_hz| {
-            (0..10)
+            [0.99, 1.0, 1.01]
                 .into_iter()
-                .map(|_| {
+                .map(|x| {
                     interp_rand(
                         &mut rng,
-                        freq_hz as f64,
-                        input
-                            .mouse
-                            .x_01(),
+                        freq_hz as f64 * x,
+                        input.mouse.x_01(),
                     )
                 })
                 .sum()
         })
-        .sum()
+        .sum::<Sf64>()
+        * input.mouse.y_01()
 }
 
 #+end_src
