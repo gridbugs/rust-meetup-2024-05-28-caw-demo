@@ -30,8 +30,6 @@ oscillator_hz(Waveform::Saw, 200.0)
 
 * The `Signal<T>` type
 
-Primary data structure of the CAW library
-
 ** A value that changes at the audio sample rate
 
 #+begin_src rust
@@ -51,7 +49,7 @@ let c4_major_chord: Signal<f64> =
 	.sum(); // <-- signals can be added!
 #+end_src
 
-** Roughly analagous to the voltage in a cable
+** `Signal<f64>` is analagous to the voltage in a cable
 
 #+begin_src rust
 
@@ -78,6 +76,8 @@ let c4_major_chord: Signal<f64> =
 
 ** Filters can be composed with `.filter(...)`
 
+(also supports combinators such as `map` and `both`)
+
 #+begin_src rust
 
 let vibrato: Signal<f64> =
@@ -96,8 +96,6 @@ let signal: Signal<f64> =
 #+end_src
 
 * The rest of this talk is a demo!
-
-
 
 ** Make the THX sound
 
